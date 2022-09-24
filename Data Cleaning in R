@@ -1,0 +1,130 @@
+---
+title: "Exploration"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Install and load packages
+```{r Install Packages}
+install.packages('tidyverse')
+install.packages('geosphere')
+install.packages("ggstatsplot")
+```
+
+```{r Load Libraries}
+library(tidyverse)
+library(lubridate)
+library(geosphere)
+library(ggstatsplot)
+library(ggplot2)
+```
+
+# Load and data overview
+```{r}
+data1 <- read_csv('data/202102-divvy-tripdata.csv')
+data2 <- read_csv('data/202103-divvy-tripdata.csv')
+data3 <- read_csv('data/202104-divvy-tripdata.csv')
+data4 <- read_csv('data/202105-divvy-tripdata.csv')
+data5 <- read_csv('data/202106-divvy-tripdata.csv')
+data6 <- read_csv('data/202107-divvy-tripdata.csv')
+data7 <- read_csv('data/202108-divvy-tripdata.csv')
+data8 <- read_csv('data/202109-divvy-tripdata.csv')
+data9 <- read_csv('data/202110-divvy-tripdata.csv')
+data10 <- read_csv('data/202111-divvy-tripdata.csv')
+data11 <- read_csv('data/202112-divvy-tripdata.csv')
+data12 <- read_csv('data/202201-divvy-tripdata.csv')
+data <- rbind(data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12)
+str(data)
+```
+```{r}
+View(data)
+```
+
+```{r make sure the number of unique ride_id is equal to the number of row}
+count(unique(select(data, ride_id)))
+```
+# Data cleaning and preprocessing
+```{r create a new dataframe with only useful columns}
+data_new <-subset(data, select=c(data, rideable_type, started_at, ended_at, start_lat, start_lng, end_lat, end_lng, member_casual))
+```
+
+```{r get rid of na}
+data_clean <- drop_na(data_new)
+glimpse(data_clean) 
+```
+```{r Drop na}
+data_clean <- drop_na(data_new)
+glimpse(data_clean) 
+```
+# Add columns that list the date, month, day, of each ride
+# This will allow us to aggregate ride data for each month, day, or year ... before completing
+```{r}
+data_clean$date = as.Date(data_new$started_at)
+data_clean$month <- format(data_clean$date, "%m")
+data_clean$day_of_week <- format(as.Date(data_clean$date), "%A")
+```
+#create a new hour_of_day column
+```{r fist create a new column for start_time}
+data_clean$Started_at = as_datetime(df$started_at, tz="UTC",format="%d-%m-%Y %R") #the format here was d-m-Y H:M
+
+ data_clean$hour_of_day = hour(data_clean$Started_at)
+ 
+```
+```{r check is hour_of_day is in range 0-23}
+summary(df$hour_of_day)
+```
+# Add a "ride_length" calculation to all_trips (in seconds)
+```{r}
+data_clean$ride_length <- difftime(data_clean$ended_at,data_clean$started_at)
+```
+# Convert "ride_length" from Factor to numeric so we can run calculations on the data
+```{r check datatype of ride_length}
+is.factor(data_clean$ride_length)
+data_clean$ride_length <- as.numeric(as.character(data_clean$ride_length))
+is.numeric(data_clean$ride_length)
+```
+# The dataframe includes a few hundred entries when bikes were taken out of docks and checked for quality by Divvy or ride_length was negative
+# We will create a new version of the dataframe (v2) since data is being removed
+```{r create a new dataframe}
+cleanv2 <- data_clean[!(data_clean$start_station_name == "HQ QR" |  data_clean$ride_length<0),]
+```
+# STEP 4: CONDUCT DESCRIPTIVE ANALYSIS
+#=====================================
+# Descriptive analysis on ride_length (all figures in seconds)
+```{r}
+summary(cleanv2$ride_length)
+```
+# Compare members and casual users
+```{r}
+aggregate(cleanv2$ride_length ~ cleanv2$member_casual, FUN = mean) #do same with FUN= median,max,min
+```
+# Order the hour_of_day
+```{r}
+cleanv2$hour_of_day <- ordered(cleanv2$hour_of_day, levels=c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23))
+```
+# Order the day_of_week
+```{r}
+cleanv2$day_of_week <- ordered(cleanv2$day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", 
+"Thursday", "Friday", "Saturday")
+```
+
+# Order the month_of_year
+```{r}
+cleanv2$month <- ordered(cleanv2$month, levels=c("January", "February", "March", "April", "May", "June", "July", "August", "September",
+"October", "November", "December")
+```
+# Now, let's run the average ride time by each day for members vs casual users
+```{r}
+aggregate(cleanv2$ride_length ~ cleanv2$member_casual + cleanv2$day_of_week, FUN = mean)
+```
+#  the average ride time by each month for members vs casual users
+```{r}
+aggregate(cleanv2$ride_length ~ cleanv2$member_casual + cleanv2$month, FUN = mean)
+```
+#  the average ride time by each hour of the day for members vs casual users
+```{r}
+aggregate(cleanv2$ride_length ~ cleanv2$member_casual + cleanv2$hour_of_day, FUN = mean)
+```
+
