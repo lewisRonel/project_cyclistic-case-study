@@ -127,4 +127,11 @@ aggregate(cleanv2$ride_length ~ cleanv2$member_casual + cleanv2$month, FUN = mea
 ```{r}
 aggregate(cleanv2$ride_length ~ cleanv2$member_casual + cleanv2$hour_of_day, FUN = mean)
 ```
+#=================================================
+# STEP 5: EXPORT SUMMARY FILE FOR FURTHER ANALYSIS
+#=================================================
+# Create a csv file that we will visualize in Excel, Tableau, or my presentation software
+```{r}
+write.csv(cleanv2,'~/Desktop/Divvy_Exercise/avg_ride_length.csv')
+```
 
